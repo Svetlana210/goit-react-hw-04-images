@@ -8,6 +8,7 @@ import styles from './modal.module.css';
 const modalRoot = document.querySelector('#modal-root');
 
 const Modal = ({ closeImage, children }) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const closeModal = ({ target, currentTarget, code }) => {
     if (target === currentTarget || code === 'Escape') {
       closeImage();
