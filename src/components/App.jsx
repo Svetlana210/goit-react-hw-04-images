@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 
 import Searchbar from './Searchbar/Searchbar';
 import Button from './Button/Button';
@@ -9,78 +9,70 @@ import { searchImages } from '../api/api';
 
 import styles from './app.module.css';
 
-export class App extends Component {
-  state = {
-    items: [],
-    search: '',
-    loading: false,
-    error: null,
-    page: 1,
-    showModal: false,
-    largeImageURL: '',
-    tags: '',
-  };
+const App = () => {
+  const [items, setItems] = useState([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [tags, setTags] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
-    const { search, page } = this.state;
-
-    if (prevState.search !== search || prevState.page !== page) {
-      this.fetchImages();
+  useEffect(() => {
+    if (search) {
+      const fetchImages = async () => {
+        try {
+          setLoading(true);
+          const data = await searchImages(search, page);
+          setItems(prevItems => [...prevItems, ...data.hits]);
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchImages();
     }
-  }
+  }, [search, page, setLoading, setItems, setError]);
 
-  async fetchImages() {
-    try {
-      this.setState({ loading: true });
-      const { search, page } = this.state;
-      const data = await searchImages(search, page);
-      this.setState(({ items }) => ({ items: [...items, ...data.hits] }));
-    } catch (error) {
-      this.setState({ error: error.message });
-    } finally {
-      this.setState({ loading: false });
-    }
-  }
-
-  searchImages = ({ search }) => {
-    this.setState({ search, items: [], page: 1 });
+  const onSearchImages = ({ search }) => {
+    setSearch(search);
+    setItems([]);
+    setPage(1);
   };
 
-  loadMore = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
+  const showImage = ({ largeImageURL, tags }) => {
+    setShowModal(true);
+    setLargeImageURL(largeImageURL);
+    setTags(tags);
   };
 
-  showImage = ({ largeImageURL, tags }) => {
-    this.setState({
-      showModal: true,
-      largeImageURL: largeImageURL,
-      tags: tags,
-    });
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
-  closeImage = () => {
-    this.setState({ showModal: false });
+
+  const closeImage = () => {
+    setShowModal(false);
+    setLargeImageURL('');
   };
-  render() {
-    const { items, loading, error, largeImageURL, tags, showModal } =
-      this.state;
-    const { searchImages, loadMore, showImage, closeImage } = this;
-    return (
-      <div className={styles.app}>
-        <Searchbar onSubmit={searchImages} />
-        <ImageGallery items={items} showImage={showImage} />
-        {error && <p>{error}</p>}
-        {loading && <Loader />}
-        {Boolean(items.length) && <Button onClick={loadMore} />}
-        {showModal && (
-          <Modal closeImage={closeImage}>
-            <>
-              <img src={largeImageURL} alt={tags}></img>
-            </>
-          </Modal>
-        )}
-      </div>
-    );
-  }
-}
+
+  return (
+    <div className={styles.app}>
+      <Searchbar onSubmit={onSearchImages} />
+      <ImageGallery items={items} showImage={showImage} />
+      {error && <p>{error}</p>}
+      {loading && <Loader />}
+      {Boolean(items.length) && <Button onClick={loadMore} />}
+      {showModal && (
+        <Modal closeImage={closeImage}>
+          <>
+            <img src={largeImageURL} alt={tags}></img>
+          </>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default App;
